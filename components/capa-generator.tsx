@@ -42,8 +42,9 @@ export function CapaGenerator() {
     multiple: false,
   })
 
-  const generateReport = async () => {
-    if (!file) return
+  const generateReport = async (imageFile?: File) => {
+    const fileToUse = imageFile || file
+    if (!fileToUse) return
 
     setIsProcessing(true)
     setError(null)
@@ -62,7 +63,7 @@ export function CapaGenerator() {
 
     try {
       const formData = new FormData()
-      formData.append("file", file)
+      formData.append("file", fileToUse)
 
       const response = await fetch("https://xhire.app.n8n.cloud/webhook/generate/capa", {
         method: "POST",
@@ -74,6 +75,16 @@ export function CapaGenerator() {
       }
 
       const data: CapaResponse = await response.json()
+      
+      // Extract HTML from markdown code blocks if present
+      if (data.html_data && data.html_data.includes('```html')) {
+        // Extract content between ```html and ```
+        const htmlMatch = data.html_data.match(/```html\s*([\s\S]*?)\s*```/);
+        if (htmlMatch && htmlMatch[1]) {
+          data.html_data = htmlMatch[1].trim();
+        }
+      }
+      
       setResult(data)
       setProgress(100)
     } catch (err) {
@@ -82,6 +93,20 @@ export function CapaGenerator() {
     } finally {
       clearInterval(progressInterval)
       setIsProcessing(false)
+    }
+  }
+
+  const tryExampleImage = async () => {
+    try {
+      // Fetch the example image from public folder
+      const response = await fetch('/no-helmet.png')
+      const blob = await response.blob()
+      const file = new File([blob], 'no-helmet.png', { type: 'image/png' })
+      
+      // Call generateReport with the example image
+      await generateReport(file)
+    } catch (err) {
+      setError('Failed to load example image')
     }
   }
 
@@ -116,9 +141,9 @@ export function CapaGenerator() {
       const opt = {
         margin: 1,
         filename: `capa-report-${new Date().toISOString().split("T")[0]}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
+        image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: { scale: 2 },
-        jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+        jsPDF: { unit: "in", format: "letter", orientation: "portrait" as const },
       }
 
       // Generate and download PDF
@@ -218,7 +243,7 @@ export function CapaGenerator() {
 
             {/* Action Buttons */}
             <div className="flex gap-2">
-              <Button onClick={generateReport} disabled={!file || isProcessing} className="flex-1">
+              <Button onClick={() => generateReport()} disabled={!file || isProcessing} className="flex-1">
                 {isProcessing ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -306,7 +331,7 @@ export function CapaGenerator() {
                         <Download className="h-4 w-4 mr-2" />
                         Download HTML
                       </Button>
-                      <Button onClick={downloadPdfReport} disabled={isGeneratingPdf} className="flex-1">
+                      {/* <Button onClick={downloadPdfReport} disabled={isGeneratingPdf} className="flex-1">
                         {isGeneratingPdf ? (
                           <>
                             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
@@ -318,7 +343,7 @@ export function CapaGenerator() {
                             Download PDF
                           </>
                         )}
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 )}
@@ -327,6 +352,79 @@ export function CapaGenerator() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Example Section */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Try with Example</CardTitle>
+          <CardDescription>
+            See how the CAPA generator works with a sample industrial safety image
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2 items-center">
+            <div className="text-center">
+              <div className="relative inline-block">
+                <img
+                  src="/no-helmet.png"
+                  alt="Example: Worker without helmet - Industrial safety hazard"
+                  className="max-w-full h-auto rounded-lg border shadow-sm bg-muted/30"
+                  style={{ maxHeight: '300px' }}
+                />
+                <div className="absolute top-2 right-2">
+                  <Badge variant="destructive" className="text-xs">
+                    Safety Hazard
+                  </Badge>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Example: Construction worker without safety helmet
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium mb-2">What you'll get:</h3>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    Hazard identification and analysis
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    Corrective action recommendations
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    Preventive measures
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                    Downloadable HTML/PDF report
+                  </li>
+                </ul>
+              </div>
+              <Button 
+                onClick={tryExampleImage} 
+                disabled={isProcessing}
+                className="w-full"
+                variant="secondary"
+              >
+                {isProcessing ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Processing Example...
+                  </>
+                ) : (
+                  <>
+                    <FileImage className="h-4 w-4 mr-2" />
+                    Try Example Image
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Info Section */}
       <Card className="mt-6">
