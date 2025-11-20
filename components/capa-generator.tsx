@@ -65,7 +65,7 @@ export function CapaGenerator() {
       const formData = new FormData()
       formData.append("file", fileToUse)
 
-      const response = await fetch("https://xhire.app.n8n.cloud/webhook/generate/capa", {
+      const response = await fetch("https://n8n-82ff.onrender.com/webhook/generate/capa", {
         method: "POST",
         body: formData,
       })
