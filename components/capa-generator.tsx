@@ -25,33 +25,47 @@ interface HazardDetails {
   reportDate: string
 }
 
-interface CorrectiveActions {
-  action: string[]
+interface CorrectiveAction {
+  action: string
   responsiblePerson: string
   timeline: string
 }
 
-interface PreventiveActions {
-  action: string[]
-  responsiblePerson: string[]
-  timeline: Record<string, string>
+interface PreventiveAction {
+  action: string
+  responsiblePerson: string
+  timeline: string
+}
+
+interface RiskAssessmentItem {
+  hazard: string
+  potentialHarm: string
+  likelihood: string
+  severity: string
+  riskLevel: string
+}
+
+interface ComplianceClause {
+  reference: string
+  description: string
+}
+
+interface ComplianceReference {
+  standard: string
+  clauses: ComplianceClause[]
 }
 
 interface AdditionalInformation {
-  rootCauseAnalysis: string
-  riskAssessment: string
-  complianceReferences: string
+  rootCauseAnalysis: string[]
+  riskAssessment: RiskAssessmentItem[]
+  complianceReferences: ComplianceReference[]
 }
 
 interface DetectedHazard {
   hazardType: string
+  description: string
   confidenceScore: number
-  boundingBox: {
-    x_min: number
-    y_min: number
-    x_max: number
-    y_max: number
-  }
+  boundingBox: number[]
 }
 
 interface ImageAnalysis {
@@ -61,8 +75,8 @@ interface ImageAnalysis {
 
 interface CapaData {
   hazardDetails: HazardDetails
-  correctiveActions: CorrectiveActions
-  preventiveActions: PreventiveActions
+  correctiveActions: CorrectiveAction[]
+  preventiveActions: PreventiveAction[]
   additionalInformation: AdditionalInformation
   imageAnalysis: ImageAnalysis
 }
@@ -81,7 +95,7 @@ interface CapaResponse {
 
 const generateHtmlReport = (data: CapaData): string => {
   return `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1f2937; max-width: 800px; margin: 0 auto; background-color: #ffffff;">
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1f2937; max-width: 900px; margin: 0 auto; background-color: #ffffff;">
       
       <!-- Header -->
       <div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: start;">
@@ -128,39 +142,84 @@ const generateHtmlReport = (data: CapaData): string => {
       <!-- Section 2: Root Cause -->
       <div style="margin-bottom: 30px;">
         <h2 style="color: #111827; font-size: 18px; font-weight: 700; border-left: 4px solid #3b82f6; padding-left: 12px; margin-bottom: 15px;">2. Root Cause Analysis</h2>
-        <p style="white-space: pre-wrap; line-height: 1.6; font-size: 14px;">${data.additionalInformation.rootCauseAnalysis}</p>
+        <ul style="padding-left: 20px; line-height: 1.6; margin: 0;">
+          ${data.additionalInformation.rootCauseAnalysis.map(cause => `<li style="margin-bottom: 8px;">${cause}</li>`).join('')}
+        </ul>
       </div>
 
       <!-- Section 3: Corrective Actions -->
       <div style="margin-bottom: 30px;">
         <h2 style="color: #111827; font-size: 18px; font-weight: 700; border-left: 4px solid #3b82f6; padding-left: 12px; margin-bottom: 15px;">3. Corrective Actions</h2>
-        <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 15px;">
-           ${data.correctiveActions.action.map(action => `<li style="margin-bottom: 8px;">${action}</li>`).join('')}
-        </ul>
-        <div style="display: flex; gap: 20px; font-size: 14px;">
-           <span style="color: #4b5563;"><strong>Responsible:</strong> ${data.correctiveActions.responsiblePerson}</span>
-           <span style="color: #4b5563;"><strong>Timeline:</strong> ${data.correctiveActions.timeline}</span>
-        </div>
+        ${data.correctiveActions.map((item, index) => `
+          <div style="margin-bottom: 20px; padding: 15px; background-color: #f9fafb; border-radius: 6px;">
+            <p style="margin: 0 0 10px 0; font-weight: 600; color: #111827;">${index + 1}. ${item.action}</p>
+            <div style="display: flex; gap: 20px; font-size: 13px; color: #6b7280;">
+              <span><strong>Responsible:</strong> ${item.responsiblePerson}</span>
+              <span><strong>Timeline:</strong> ${item.timeline}</span>
+            </div>
+          </div>
+        `).join('')}
       </div>
 
       <!-- Section 4: Preventive Actions -->
       <div style="margin-bottom: 30px;">
         <h2 style="color: #111827; font-size: 18px; font-weight: 700; border-left: 4px solid #3b82f6; padding-left: 12px; margin-bottom: 15px;">4. Preventive Actions</h2>
-        <ul style="padding-left: 20px; line-height: 1.6; margin-bottom: 15px;">
-           ${data.preventiveActions.action.map(action => `<li style="margin-bottom: 8px;">${action}</li>`).join('')}
-        </ul>
+        ${data.preventiveActions.map((item, index) => `
+          <div style="margin-bottom: 20px; padding: 15px; background-color: #f9fafb; border-radius: 6px;">
+            <p style="margin: 0 0 10px 0; font-weight: 600; color: #111827;">${index + 1}. ${item.action}</p>
+            <div style="display: flex; gap: 20px; font-size: 13px; color: #6b7280;">
+              <span><strong>Responsible:</strong> ${item.responsiblePerson}</span>
+              <span><strong>Timeline:</strong> ${item.timeline}</span>
+            </div>
+          </div>
+        `).join('')}
       </div>
 
-      <!-- Section 5: Compliance -->
+      <!-- Section 5: Risk Assessment -->
       <div style="margin-bottom: 30px;">
-        <h2 style="color: #111827; font-size: 18px; font-weight: 700; border-left: 4px solid #3b82f6; padding-left: 12px; margin-bottom: 15px;">5. Compliance & Risks</h2>
-        <div style="font-size: 14px;">
-           <p style="margin-bottom: 10px;"><strong>Risk Assessment:</strong></p>
-           <p style="white-space: pre-wrap; margin-bottom: 20px; color: #4b5563; line-height: 1.5;">${data.additionalInformation.riskAssessment}</p>
-           
-           <p style="margin-bottom: 10px;"><strong>Compliance References:</strong></p>
-           <p style="white-space: pre-wrap; color: #4b5563; line-height: 1.5;">${data.additionalInformation.complianceReferences}</p>
-        </div>
+        <h2 style="color: #111827; font-size: 18px; font-weight: 700; border-left: 4px solid #3b82f6; padding-left: 12px; margin-bottom: 15px;">5. Risk Assessment</h2>
+        ${data.additionalInformation.riskAssessment.map(risk => `
+          <div style="margin-bottom: 15px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 6px;">
+            <p style="margin: 0 0 8px 0; font-weight: 600; color: #111827;">${risk.hazard}</p>
+            <p style="margin: 0 0 5px 0; font-size: 14px; color: #4b5563;"><strong>Potential Harm:</strong> ${risk.potentialHarm}</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; font-size: 13px;">
+              <span style="color: #6b7280;"><strong>Likelihood:</strong> ${risk.likelihood}</span>
+              <span style="color: #6b7280;"><strong>Severity:</strong> ${risk.severity}</span>
+              <span style="color: #dc2626; font-weight: 600;"><strong>Risk Level:</strong> ${risk.riskLevel}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Section 6: Compliance References -->
+      <div style="margin-bottom: 30px;">
+        <h2 style="color: #111827; font-size: 18px; font-weight: 700; border-left: 4px solid #3b82f6; padding-left: 12px; margin-bottom: 15px;">6. Compliance References</h2>
+        ${data.additionalInformation.complianceReferences.map(compliance => `
+          <div style="margin-bottom: 20px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px; font-weight: 600; color: #111827;">${compliance.standard}</h3>
+            <ul style="padding-left: 20px; margin: 0; line-height: 1.6;">
+              ${compliance.clauses.map(clause => `
+                <li style="margin-bottom: 8px; font-size: 14px;">
+                  <strong>${clause.reference}:</strong> ${clause.description}
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Section 7: Image Analysis -->
+      <div style="margin-bottom: 30px;">
+        <h2 style="color: #111827; font-size: 18px; font-weight: 700; border-left: 4px solid #3b82f6; padding-left: 12px; margin-bottom: 15px;">7. Image Analysis</h2>
+        <p style="margin-bottom: 15px; line-height: 1.6; color: #4b5563;">${data.imageAnalysis.overallEnvironment}</p>
+        <h3 style="margin: 15px 0 10px 0; font-size: 15px; font-weight: 600; color: #111827;">Detected Hazards:</h3>
+        ${data.imageAnalysis.detectedHazards.map((hazard, index) => `
+          <div style="margin-bottom: 15px; padding: 12px; background-color: #fef2f2; border-left: 3px solid #dc2626; border-radius: 4px;">
+            <p style="margin: 0 0 5px 0; font-weight: 600; color: #991b1b;">${index + 1}. ${hazard.hazardType}</p>
+            <p style="margin: 0 0 5px 0; font-size: 14px; color: #4b5563;">${hazard.description}</p>
+            <p style="margin: 0; font-size: 13px; color: #6b7280;"><strong>Confidence:</strong> ${(hazard.confidenceScore * 100).toFixed(0)}%</p>
+          </div>
+        `).join('')}
       </div>
 
       <!-- Footer -->
@@ -221,7 +280,7 @@ export function CapaGenerator() {
       const formData = new FormData()
       formData.append("file", fileToUse)
 
-      const response = await fetch("https://n8n-82ff.onrender.com/webhook/generate/capa", {
+      const response = await fetch("/api/generate-capa", {
         method: "POST",
         body: formData,
       })
@@ -310,18 +369,23 @@ export function CapaGenerator() {
 
       // Create a temporary div with the HTML content
       const element = document.createElement("div")
-      // Use the styled HTML
-      element.innerHTML = result.html_data
+      // Wrap in a container with explicit background to avoid oklch color issues
+      const wrapper = document.createElement("div")
+      wrapper.style.backgroundColor = "#ffffff"
+      wrapper.style.color = "#000000"
+      wrapper.innerHTML = result.html_data
+      element.appendChild(wrapper)
 
       // Configure PDF options
       const opt = {
-        margin: [0.5, 0.5], // Top, Left, Bottom, Right margin in inches
+        margin: [0.5, 0.5, 0.5, 0.5] as [number, number, number, number], // Top, Right, Bottom, Left margin in inches
         filename: `capa-report-${new Date().toISOString().split("T")[0]}.pdf`,
         image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: {
           scale: 2,
           useCORS: true,
-          letterRendering: true
+          letterRendering: true,
+          backgroundColor: "#ffffff"
         },
         jsPDF: { unit: "in", format: "letter", orientation: "portrait" as const },
       }
