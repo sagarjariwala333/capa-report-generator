@@ -227,16 +227,38 @@ export function CapaGenerator() {
     setIsGeneratingPdf(true)
 
     try {
+      console.log('Starting PDF generation...')
       await generatePdfFromHtml(
         result.html_data,
         `capa-report-${new Date().toISOString().split("T")[0]}.pdf`
       )
+      console.log('PDF generation completed successfully')
     } catch (err) {
       console.error("PDF generation failed:", err)
-      setError("Failed to generate PDF. Please try downloading HTML instead.")
+      setError(`Failed to generate PDF: ${err instanceof Error ? err.message : 'Unknown error'}. Please try downloading HTML instead.`)
     } finally {
       setIsGeneratingPdf(false)
     }
+  }
+
+  const downloadJson = () => {
+    if (!result) return
+
+    // Create a clean JSON object with all the data
+    const jsonData = {
+      timestamp: new Date().toISOString(),
+      ...result
+    }
+
+    const blob = new Blob([JSON.stringify(jsonData, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `capa-report-${new Date().toISOString().split("T")[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
   }
 
   const reset = () => {
@@ -409,23 +431,29 @@ export function CapaGenerator() {
                         dangerouslySetInnerHTML={{ __html: result.html_data }}
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <Button onClick={downloadReport} variant="outline" className="flex-1 bg-transparent">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <Button onClick={downloadReport} variant="outline" className="flex-1 bg-transparent">
+                          <Download className="h-4 w-4 mr-2" />
+                          Download HTML
+                        </Button>
+                        <Button onClick={downloadPdfReport} disabled={isGeneratingPdf} className="flex-1">
+                          {isGeneratingPdf ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                              Generating PDF...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-4 w-4 mr-2" />
+                              Download PDF
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <Button onClick={downloadJson} variant="secondary" className="w-full">
                         <Download className="h-4 w-4 mr-2" />
-                        Download HTML
-                      </Button>
-                      <Button onClick={downloadPdfReport} disabled={isGeneratingPdf} className="flex-1">
-                        {isGeneratingPdf ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                            Generating PDF...
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="h-4 w-4 mr-2" />
-                            Download PDF
-                          </>
-                        )}
+                        Download JSON Data
                       </Button>
                     </div>
                   </div>
